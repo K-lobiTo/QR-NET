@@ -1,0 +1,364 @@
+Network Working Group                                        QR-NET Team
+Request for Comments: XXXX                              TEC Costa Rica
+Category: Informational                                     April 2026
+
+
+               QR-NET: A Light-Based Anonymous Mesh Network Protocol
+
+Status of this Memo
+
+   This memo provides information for the Internet community. This memo
+   does not specify an Internet standard of any kind. Distribution of
+   this memo is unlimited.
+
+Abstract
+
+   This document specifies the QR-NET protocol suite, which implements
+   a multi-layer anonymous communication network using QR codes as the
+   physical transmission medium. QR-NET provides anonymous mesh
+   routing over standard TCP/IP infrastructure, enabling censorship-
+   resistant communication in environments where freedom of expression
+   is restricted.
+
+Table of Contents
+
+   1.  Introduction ................................................  2
+   2.  Terminology .................................................  3
+   3.  Protocol Overview ...........................................  4
+   4.  Layer 1 — Physical Frame Format ............................  5
+       4.1  Frame Structure ........................................  5
+       4.2  Checksum Calculation (CRC-16) ..........................  7
+       4.3  Medium Access Control ..................................  8
+       4.4  MAC Address Scheme .....................................  9
+   5.  Layer 2/3 — remote-QR-net Packet Format ....................  10
+       5.1  Packet Structure .......................................  10
+       5.2  Anonymity Mechanism ....................................  12
+       5.3  Routing Protocol .......................................  13
+       5.4  Virtual Circuit Negotiation ............................  14
+       5.5  Node Directory Protocol ................................  15
+   6.  Layer 7 — Application Protocol ............................  16
+       6.1  Anonymous Application (Microblogging/Chat) ............  16
+       6.2  Public Application (Clearnet Bridge) ..................  17
+   7.  Version Negotiation .........................................  18
+   8.  Security Considerations .....................................  19
+   9.  IANA Considerations .........................................  20
+   10. References ..................................................  21
+
+
+1. Introduction
+
+   The QR-NET protocol suite was designed to address the growing need
+   for censorship-resistant, anonymous communication in environments
+   where local telecommunications providers lack infrastructure or
+   where governments restrict freedom of expression (as protected by
+   Article 19 of the Universal Declaration of Human Rights).
+
+   QR-NET achieves this by using light (QR codes) as its physical
+   transmission medium, layering an anonymous mesh network on top of
+   standard TCP/IP, and providing both private and public (clearnet)
+   application interfaces.
+
+   The key design principles are:
+
+   o  Anonymity: No packet reveals the identity of its originator.
+   o  Versioning: All protocol layers support version negotiation.
+   o  Extensibility: Dynamic-length fields are always preceded by
+      explicit length fields.
+   o  Interoperability: The network operates over Ethernet, WiFi,
+      QR light links, and shared video streams.
+
+
+2. Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in
+   this document are to be interpreted as described in RFC 2119.
+
+   Transmission Device  - A camera-equipped device used as a network
+                          interface for QR code reception/transmission.
+
+   remote-QR-net        - The anonymous mesh network defined in this
+                          RFC, operating over TCP/IP.
+
+   clearnet             - Standard Internet, outside remote-QR-net,
+                          where sender anonymity is not guaranteed.
+
+   Node ID              - A 256-bit anonymous identifier (SHA-256 of
+                          a random UUID) used within remote-QR-net.
+
+   MAC Address (QR-NET) - A 6-byte physical address assigned to each
+                          Transmission Device interface.
+
+   Virtual Circuit      - A pre-negotiated path through the mesh used
+                          for efficient packet forwarding.
+
+
+3. Protocol Overview
+
+   QR-NET implements the following OSI layers:
+
+   +-------+---------------------------------------------+
+   | Layer | Module                                      |
+   +-------+---------------------------------------------+
+   |   7   | Anonymous App (microblog/chat) + IRC/NNTP   |
+   |   3   | remote-QR-net routing (mesh, anonymous)     |
+   |   2   | remote-QR-net framing over TCP/IP           |
+   |   1   | QR code light link (DispositivoLuzAdaptador)|
+   +-------+---------------------------------------------+
+
+   Data flow for an anonymous message:
+
+     [Sender App]
+          |
+          v  AppMessage (JSON)
+     [AnonymousApp L7]
+          |
+          v  QRNetPacket (JSON/UDP)
+     [QRNetNode L2/3] ---> [Mesh nodes] ---> [QRNetNode L2/3]
+          |                                        |
+          v  Frame (binary, 128 bytes max)         v
+     [DispositivoLuzAdaptador L1]         [Receiver App]
+          |
+          v  QR code (light)
+
+
+4. Layer 1 — Physical Frame Format
+
+4.1 Frame Structure
+
+   Each frame MUST NOT exceed 128 bytes total. The frame format is:
+
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |   PREAMBLE    |    VERSION    |  FRAME_TYPE   |  SRC_MAC_LEN  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  DST_MAC_LEN  |          SRC_MAC (6 bytes)                    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |    SRC_MAC (cont.)            |          DST_MAC (6 bytes)    |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |          DST_MAC (cont.)                      | PAYLOAD_LEN   |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                   PAYLOAD (variable, 0-110 bytes)             |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |           CHECKSUM (CRC-16, 2 bytes)          |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+   Fields:
+
+   PREAMBLE     (1 byte)  : Fixed value 0xAB. Marks start of frame.
+   VERSION      (1 byte)  : Protocol version. Current value: 0x01.
+                            Receivers MUST discard frames with unknown
+                            version numbers.
+   FRAME_TYPE   (1 byte)  : Type of frame:
+                              0x01 = DATA
+                              0x02 = ACK
+                              0x03 = HELLO
+   SRC_MAC_LEN  (1 byte)  : Length of SRC_MAC field in bytes (= 6).
+   DST_MAC_LEN  (1 byte)  : Length of DST_MAC field in bytes (= 6).
+   SRC_MAC      (6 bytes) : Physical address of sender.
+   DST_MAC      (6 bytes) : Physical address of recipient.
+                            0xFF:FF:FF:FF:FF:FF = broadcast.
+   PAYLOAD_LEN  (1 byte)  : Number of bytes in the PAYLOAD field.
+                            MUST accurately reflect payload size.
+   PAYLOAD      (variable): Frame payload. Maximum 110 bytes.
+   CHECKSUM     (2 bytes) : CRC-16/CCITT-FALSE over all preceding bytes.
+
+4.2 Checksum Calculation (CRC-16)
+
+   The checksum MUST be computed using CRC-16/CCITT-FALSE:
+
+     - Initial value : 0xFFFF
+     - Polynomial    : 0x1021
+     - Input/Output  : Not reflected
+     - Final XOR     : 0x0000
+
+   The checksum covers all bytes from PREAMBLE through the last byte
+   of PAYLOAD (inclusive). Frames with invalid checksums MUST be
+   discarded silently.
+
+4.3 Medium Access Control
+
+   QR-NET Layer 1 uses a simplified CSMA (Carrier Sense Multiple
+   Access) scheme:
+
+   1. Before transmitting, the sender MUST scan the camera input to
+      determine if a QR code is currently visible (medium busy).
+   2. If the medium is busy, the sender MUST wait a random backoff
+      period using exponential backoff: t = 0.1 * 2^attempt seconds.
+   3. Maximum retry attempts: 5. After 5 failures, the frame is
+      dropped and the upper layer is notified.
+
+4.4 MAC Address Scheme
+
+   Each Transmission Device interface is assigned a 6-byte MAC address
+   derived from the host's UUID node component:
+
+     mac = uuid.getnode().to_bytes(6, 'big')
+
+   This provides a locally unique address within a physical network
+   segment. Addresses are NOT globally unique and MUST NOT be used
+   as identifiers within remote-QR-net (use Node IDs instead).
+
+
+5. Layer 2/3 — remote-QR-net Packet Format
+
+5.1 Packet Format
+
+   remote-QR-net packets are encoded as UTF-8 JSON and transported
+   over UDP. The packet structure is:
+
+   {
+     "version"     : <integer>,   // Protocol version (current: 1)
+     "msg_type"    : <string>,    // "HELLO"|"ROUTE"|"DATA"|"CIRCUIT"
+     "packet_id"   : <string>,    // UUID v4, unique per packet
+     "src_node"    : <string>,    // SHA-256 anonymous Node ID (hex)
+     "dst_node"    : <string>,    // SHA-256 anonymous Node ID (hex)
+     "circuit_id"  : <string>,    // Virtual circuit ID (UUID v4)
+     "hop_count"   : <integer>,   // Number of hops traversed
+     "ttl"         : <integer>,   // Time to live (default: 16)
+     "path_len"    : <integer>,   // Number of entries in "path"
+     "path"        : [<string>],  // List of Node IDs (path_len items)
+     "payload_len" : <integer>,   // Byte length of "payload" (UTF-8)
+     "payload"     : <string>     // Application payload
+   }
+
+   All integer fields are non-negative. Receivers MUST validate that
+   path_len == len(path) and payload_len == len(payload.encode()).
+   Packets failing validation MUST be discarded.
+
+5.2 Anonymity Mechanism
+
+   Node IDs MUST be generated as:
+
+     node_id = SHA-256(random_uuid_bytes).hexdigest()
+
+   Node IDs MUST NOT be derived from any network address (IP, MAC)
+   or any persistent device identifier. They SHOULD be regenerated
+   periodically to prevent long-term tracking.
+
+   The src_node field in DATA packets MAY be set to an empty string
+   or a one-time pseudonym to provide additional sender anonymity.
+
+5.3 Routing Protocol
+
+   remote-QR-net uses a Distance Vector routing protocol:
+
+   - Each node periodically broadcasts HELLO packets to discover
+     neighbors (default interval: 30 seconds).
+   - Upon receiving a ROUTE packet, a node updates its routing table
+     if the advertised distance is lower than the current best.
+   - Packets are forwarded hop-by-hop toward the destination using
+     the routing table's next-hop entry.
+   - TTL is decremented at each hop. Packets with TTL <= 0 MUST be
+     discarded.
+
+5.4 Virtual Circuit Negotiation
+
+   Virtual circuits provide efficient forwarding for established
+   flows. Circuit setup uses CIRCUIT packets:
+
+   1. Initiator sends CIRCUIT packet with a fresh circuit_id.
+   2. Each intermediate node records (circuit_id -> next_hop).
+   3. Subsequent DATA packets reference circuit_id for O(1) forwarding
+      without consulting the full routing table.
+
+5.5 Node Directory Protocol
+
+   The Node Directory is a service that tracks active nodes:
+
+   - Nodes register by sending a HELLO packet.
+   - Directory entries expire after 300 seconds of inactivity.
+   - Nodes MAY query the directory to discover peers.
+
+
+6. Layer 7 — Application Protocol
+
+6.1 Anonymous Application
+
+   AppMessage format (JSON):
+
+   {
+     "version"     : <integer>,   // App protocol version (current: 1)
+     "msg_type"    : <string>,    // "CHAT"|"POST"|"TOPIC"
+     "message_id"  : <string>,    // UUID v4
+     "timestamp"   : <float>,     // Unix timestamp
+     "topic"       : <string>,    // Topic name
+     "topic_len"   : <integer>,   // Byte length of topic
+     "content"     : <string>,    // Message body
+     "content_len" : <integer>,   // Byte length of content
+     "is_public"   : <boolean>    // If true, eligible for clearnet
+   }
+
+6.2 Public Application (Clearnet Bridge)
+
+   The IRC bot bridges remote-QR-net to clearnet:
+
+   - ONLY messages with is_public == true are forwarded to IRC/NNTP.
+   - IRC messages from channel members prefixed with "!qrnet " are
+     injected into remote-QR-net as private (is_public = false) posts.
+   - Each new public topic entry triggers an NNTP article publication.
+
+
+7. Version Negotiation
+
+   All protocol layers include a VERSION field. When a node receives
+   a packet with an unknown version:
+
+   - Layer 1: Frame MUST be discarded silently.
+   - Layer 2/3: Packet MUST be discarded; a log entry SHOULD be made.
+   - Layer 7: Message MUST be discarded.
+
+   Future versions of this protocol MUST increment the version number.
+   Backward compatibility is NOT guaranteed across major versions.
+
+
+8. Security Considerations
+
+   8.1  The anonymity provided by QR-NET is probabilistic, not
+        absolute. Timing attacks and traffic analysis may deanonymize
+        users in adversarial environments.
+
+   8.2  Node IDs are generated randomly per session. Persistent
+        storage of Node IDs is NOT RECOMMENDED.
+
+   8.3  The light-based physical channel provides natural isolation
+        from network-layer surveillance, but is susceptible to
+        eavesdropping by any device with camera access to the channel.
+
+   8.4  Encryption of the payload is RECOMMENDED for sensitive
+        communications. This RFC does not mandate a specific
+        encryption scheme; implementors SHOULD consider standard
+        end-to-end encryption.
+
+
+9. IANA Considerations
+
+   This document does not require any action from IANA. The UDP port
+   9000 used by remote-QR-net is not registered and is used by
+   convention within private deployments.
+
+
+10. References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, March 1997.
+
+   [RFC2616]  Fielding, R., et al., "Hypertext Transfer Protocol --
+              HTTP/1.1", RFC 2616, June 1999.
+
+   [IEEE802.3] IEEE, "IEEE Standard for Ethernet", IEEE 802.3, 2018.
+
+   [QR-ISO]   ISO/IEC 18004:2015, "Information technology - Automatic
+              identification and data capture techniques - QR Code
+              bar code symbology specification", 2015.
+
+
+Authors' Addresses
+
+   QR-NET Team
+   Escuela de Ingenieria de Computacion
+   Tecnologico de Costa Rica
+   Cartago, Costa Rica
+
+   Advisor: Prof. Kevin Moraga <kmoragas@ic-itcr.ac.cr>
