@@ -1,6 +1,6 @@
 Network Working Group                                        QR-NET Team
 Request for Comments: XXXX                              TEC Costa Rica
-Category: Informational                                     April 2026
+Category: Informational                                     May 2026
 
 
                QR-NET: A Light-Based Anonymous Mesh Network Protocol
@@ -359,6 +359,6 @@ Authors' Addresses
    QR-NET Team
    Escuela de Ingenieria de Computacion
    Tecnologico de Costa Rica
-   Cartago, Costa Rica
+   Alajuela, Costa Rica
 
    Advisor: Prof. Kevin Moraga <kmoragas@ic-itcr.ac.cr>
