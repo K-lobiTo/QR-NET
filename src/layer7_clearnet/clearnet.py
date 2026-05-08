@@ -8,10 +8,15 @@ son replicados en IRC y NNTP.
 
 import irc.bot
 import irc.strings
-import nntplib
 import threading
 import time
 from typing import Optional
+
+# nntplib was removed in Python 3.13, try to import from stdlib
+try:
+    import nntplib
+except ImportError:
+    nntplib = None  # Will be handled gracefully in NNTPPublisher
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +100,10 @@ class NNTPPublisher:
         Publica un artículo NNTP con el contenido del tópico.
         Cada nueva entrada de tópico en QR-NET genera un artículo.
         """
+        if nntplib is None:
+            print(f"[L7-NNTP] NNTP no disponible (Python 3.13+ requiere backport). Omitiendo publicación.")
+            return
+        
         try:
             article = (
                 f"From: qrnet-bot@anonymous.net\r\n"
