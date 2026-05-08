@@ -1,0 +1,137 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# File Transfer Test Files
+test_*.bin
+test_data.bin
+test_file.bin
+test_upload.bin
+received_*
+output.bin
+*.tmp
+
+# QR-NET Specific
+# Generated test/demo files
+demo/
+temp/
+tmp/
+*.qr
+*.old
+
+# Camera/Video Captures
+*.avi
+*.mp4
+*.mov
+*.mkv
+
+# Editor backup files
+*.bak
+*.backup
+*~
+.swp
+
+# OS Specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Node (if used for documentation tools)
+node_modules/
+npm-debug.log
+
+# Pycache in all directories
+**/__pycache__/
+
+# Poetry
+poetry.lock
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Directories to ignore
+.git/
+*.orig
+
+# Documentation builds (if using Sphinx)
+docs/_build/
+site/
+
+# Local configuration
+.env
+.env.local
+*.cfg.local
+
+# Application state
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE runtime data
+.idea/
+.vscode/
+*.code-workspace
