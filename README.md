@@ -30,8 +30,10 @@ qr-net/
 |----------|--------|-------------|
 | Capa 1 | `layer1_physical` | Transmisión via códigos QR (luz) con trama de 128 bytes |
 | Capa 2/3 | `layer2_3_network` | Red mesh anónima sobre TCP/IP (remote-QR-net) |
+| Capa 5 | `layer5_transfer` | Fragmentación y reensamblaje de archivos |
 | Capa 7 | `layer7_anonymous` | Microblogging / chat dentro de remote-QR-net |
 | Capa 7 | `layer7_clearnet` | Servidor IRC + bot + NNTP (clearnet) |
+| Capa 7 | `layer7_file_transfer` | Transferencia de archivos fragmentados |
 
 ## Requisitos
 
@@ -51,6 +53,33 @@ python src/layer1_physical/main.py
 # Solo nodo de red
 python src/layer2_3_network/main.py
 ```
+
+## ⚡ Transferencia de Archivos Entre Dispositivos
+
+Nuevo: **Transferencia de archivos fragmentados vía QR con captura por cámara**
+
+### Uso Rápido
+
+```bash
+# En máquina receptora (con cámara):
+./quickstart.sh receive --host 192.168.1.101
+
+# En máquina emisora:
+./quickstart.sh send archivo.pdf abc123def456 192.168.1.100
+```
+
+### Características
+
+✓ Fragmentación automática (máx 500 bytes/fragmento)  
+✓ Transmisión de fragmentos como QRs  
+✓ Captura con cámara y decodificación  
+✓ Reensamblaje automático  
+✓ Verificación SHA256  
+✓ Transferencias múltiples simultáneas  
+
+### Documentación Completa
+
+Ver [docs/FILE_TRANSFER.md](docs/FILE_TRANSFER.md) para guía detallada.
 
 ## Evaluación
 

@@ -1,0 +1,362 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-mono); }
+  .root { padding: 1.5rem 0; }
+
+  .header { margin-bottom: 2rem; }
+  .header h1 { font-size: 22px; font-weight: 500; color: var(--color-text-primary); letter-spacing: -0.5px; }
+  .header .sub { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 99px; font-family: var(--font-mono); font-weight: 500; }
+  .badge-blue  { background: #E6F1FB; color: #0C447C; }
+  .badge-teal  { background: #E1F5EE; color: #085041; }
+  .badge-amber { background: #FAEEDA; color: #633806; }
+  .badge-coral { background: #FAECE7; color: #712B13; }
+  .badge-gray  { background: #F1EFE8; color: #444441; }
+
+  .section { margin-bottom: 2rem; }
+  .section-title {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--color-text-secondary);
+    margin-bottom: 10px; padding-bottom: 6px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .layer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .layer-card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .layer-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .layer-card.l1::before { background: #378ADD; }
+  .layer-card.l23::before { background: #1D9E75; }
+  .layer-card.l7a::before { background: #D85A30; }
+  .layer-card.l7c::before { background: #7F77DD; }
+
+  .layer-label { font-size: 10px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .layer-name  { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+  .layer-pct   { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .layer-card.l1  .layer-pct { color: #185FA5; }
+  .layer-card.l23 .layer-pct { color: #0F6E56; }
+  .layer-card.l7a .layer-pct { color: #993C1D; }
+  .layer-card.l7c .layer-pct { color: #534AB7; }
+
+  .layer-items { list-style: none; margin-top: 8px; }
+  .layer-items li {
+    font-size: 12px; color: var(--color-text-secondary);
+    padding: 3px 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    display: flex; align-items: flex-start; gap: 6px;
+  }
+  .layer-items li:last-child { border-bottom: none; }
+  .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .l1  .dot { background: #378ADD; }
+  .l23 .dot { background: #1D9E75; }
+  .l7a .dot { background: #D85A30; }
+  .l7c .dot { background: #7F77DD; }
+
+  .spec-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+  .spec-table tr { border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .spec-table tr:last-child { border-bottom: none; }
+  .spec-table td { padding: 8px 4px; vertical-align: top; }
+  .spec-table td:first-child { color: var(--color-text-secondary); width: 38%; font-size: 12px; }
+  .spec-table td:last-child  { color: var(--color-text-primary); font-family: var(--font-mono); font-size: 12px; }
+  .tag { background: var(--color-background-secondary); border-radius: 4px; padding: 1px 6px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
+
+  .info-card {
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 12px 14px;
+  }
+  .info-card .ic-title { font-size: 12px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 6px; }
+  .info-card .ic-list  { list-style: none; }
+  .info-card .ic-list li { font-size: 12px; color: var(--color-text-secondary); padding: 2px 0; }
+  .info-card .ic-list li::before { content: "→ "; color: var(--color-text-tertiary); }
+
+  .frame-diagram {
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--color-text-secondary);
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-md);
+    padding: 12px 14px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  .frame-diagram .row { display: flex; gap: 0; }
+  .field {
+    border: 0.5px solid var(--color-border-secondary);
+    padding: 4px 6px;
+    text-align: center;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+  .field.preamble { background: #E6F1FB; color: #0C447C; }
+  .field.version  { background: #E1F5EE; color: #085041; }
+  .field.type     { background: #FAEEDA; color: #633806; }
+  .field.mac      { background: #FAECE7; color: #712B13; flex: 3; }
+  .field.plen     { background: #EEEDFE; color: #3C3489; }
+  .field.payload  { background: #F1EFE8; color: #444441; flex: 5; }
+  .field.crc      { background: #FAEEDA; color: #633806; flex: 2; }
+
+  .deliverables-list { list-style: none; }
+  .deliverables-list li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    font-size: 13px; color: var(--color-text-primary);
+  }
+  .deliverables-list li:last-child { border-bottom: none; }
+  .d-icon { font-size: 16px; color: var(--color-text-secondary); }
+
+  .constraint-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .constraint-pill {
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-md);
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  .constraint-pill .cp-val { font-size: 18px; font-weight: 500; color: var(--color-text-primary); }
+  .constraint-pill .cp-lbl { color: var(--color-text-secondary); margin-top: 2px; }
+
+  .penalty-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 12px; }
+  .penalty-row:last-child { border-bottom: none; }
+  .penalty-num { font-size: 13px; font-weight: 500; color: #A32D2D; min-width: 30px; }
+</style>
+
+<div class="root">
+  <h2 class="sr-only">QR-NET project specifications</h2>
+
+  <div class="header">
+    <h1>QR-NET — Project Specs</h1>
+    <p class="sub">Proyecto 1 · Redes de Computadoras · TEC · Abril 2026 · Prof. Kevin Moraga</p>
+    <div class="badge-row">
+      <span class="badge badge-gray">Groups of 3</span>
+      <span class="badge badge-blue">Python / C / Arduino</span>
+      <span class="badge badge-teal">GNU/Linux x86</span>
+      <span class="badge badge-amber">Worth 20% of grade</span>
+      <span class="badge badge-coral">20 min defense</span>
+    </div>
+  </div>
+
+  <!-- Layers & Grading -->
+  <div class="section">
+    <div class="section-title">Layers &amp; grading weight</div>
+    <div class="layer-grid">
+
+      <div class="layer-card l1">
+        <div class="layer-label">OSI Layer 1</div>
+        <div class="layer-name">Physical — DispositivoLuzAdaptador</div>
+        <div class="layer-pct">20%</div>
+        <ul class="layer-items l1">
+          <li><span class="dot"></span>QR code over light / camera</li>
+          <li><span class="dot"></span>Max frame size: 128 bytes</li>
+          <li><span class="dot"></span>CRC-16 checksum</li>
+          <li><span class="dot"></span>Medium access control (CSMA)</li>
+          <li><span class="dot"></span>Protocol version field</li>
+          <li><span class="dot"></span>MAC-analogous physical address</li>
+          <li><span class="dot"></span>Library: DispositivoLuzAdaptador</li>
+        </ul>
+      </div>
+
+      <div class="layer-card l23">
+        <div class="layer-label">OSI Layers 2 &amp; 3</div>
+        <div class="layer-name">Network — remote-QR-net</div>
+        <div class="layer-pct">30%</div>
+        <ul class="layer-items l23">
+          <li><span class="dot"></span>Anonymous mesh over TCP/IP</li>
+          <li><span class="dot"></span>Sender anonymity (no origin leak)</li>
+          <li><span class="dot"></span>Dynamic routing through mesh</li>
+          <li><span class="dot"></span>Virtual circuits (pre-negotiated)</li>
+          <li><span class="dot"></span>Node directory service</li>
+          <li><span class="dot"></span>Channels: Ethernet, WiFi, QR, Video</li>
+          <li><span class="dot"></span>Scapy allowed</li>
+        </ul>
+      </div>
+
+      <div class="layer-card l7a">
+        <div class="layer-label">OSI Layer 7 — Anonymous</div>
+        <div class="layer-name">Microblog / Chat (QR-NET only)</div>
+        <div class="layer-pct">10%</div>
+        <ul class="layer-items l7a">
+          <li><span class="dot"></span>Microblogging within QR-NET</li>
+          <li><span class="dot"></span>Anonymous chat between peers</li>
+          <li><span class="dot"></span>Content never leaves QR-NET</li>
+        </ul>
+      </div>
+
+      <div class="layer-card l7c">
+        <div class="layer-label">OSI Layer 7 — Public</div>
+        <div class="layer-name">Clearnet Bridge (IRC + NNTP)</div>
+        <div class="layer-pct">10%</div>
+        <ul class="layer-items l7c">
+          <li><span class="dot"></span>Known IRC server install</li>
+          <li><span class="dot"></span>IRC bot bridges QR-NET ↔ clearnet</li>
+          <li><span class="dot"></span>Only public-tagged posts exit</li>
+          <li><span class="dot"></span>New topic entry → NNTP article</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RFC + Docs + Extra -->
+  <div class="section">
+    <div class="section-title">Other graded components</div>
+    <div class="two-col">
+      <div class="info-card">
+        <div class="ic-title">RFC — 10%</div>
+        <ul class="ic-list">
+          <li>Full ASCII including diagrams</li>
+          <li>Based on RFC 2616 formatting</li>
+          <li>Documents remote-QR-net protocol</li>
+          <li>Standard RFC conventions apply</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">Documentation — 20%</div>
+        <ul class="ic-list">
+          <li>Markdown + LaTeX → PDF</li>
+          <li>Do not print</li>
+          <li>Intro, dev env, data structures</li>
+          <li>Run instructions, timesheet per student</li>
+          <li>Final state, conclusions, bibliography</li>
+          <li>Inline source code comments</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">Extra credit — 10%</div>
+        <ul class="ic-list">
+          <li>Highest QR datacasting throughput wins</li>
+          <li>Score at professor's discretion</li>
+          <li>Partial extra credit may be distributed</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">Kick-off document</div>
+        <ul class="ic-list">
+          <li>Problem intro + strategy sketch</li>
+          <li>Dev environment description</li>
+          <li>Version control repo link</li>
+          <li>UML class diagram + design decisions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Frame layout -->
+  <div class="section">
+    <div class="section-title">Layer 1 frame layout (≤ 128 bytes total)</div>
+    <div class="frame-diagram">
+      <div class="row">
+        <div class="field preamble">PREAMBLE<br>1B</div>
+        <div class="field version">VERSION<br>1B</div>
+        <div class="field type">TYPE<br>1B</div>
+        <div class="field mac">SRC_MAC (6B)</div>
+        <div class="field mac">DST_MAC (6B)</div>
+        <div class="field plen">PLEN<br>1B</div>
+        <div class="field payload">PAYLOAD (≤ 110B)</div>
+        <div class="field crc">CRC-16<br>2B</div>
+      </div>
+      <p style="margin-top:8px; font-size:11px; color:var(--color-text-tertiary);">Dynamic fields (PAYLOAD) declared with explicit length field (PLEN). All protocols must include VERSION for forward compatibility.</p>
+    </div>
+  </div>
+
+  <!-- Protocol constraints -->
+  <div class="section">
+    <div class="section-title">Protocol constraints</div>
+    <div class="constraint-grid">
+      <div class="constraint-pill">
+        <div class="cp-val">128 B</div>
+        <div class="cp-lbl">Max frame size (L1)</div>
+      </div>
+      <div class="constraint-pill">
+        <div class="cp-val">6 B</div>
+        <div class="cp-lbl">Physical address (MAC-like)</div>
+      </div>
+      <div class="constraint-pill">
+        <div class="cp-val">CRC-16</div>
+        <div class="cp-lbl">Required checksum</div>
+      </div>
+      <div class="constraint-pill">
+        <div class="cp-val">CSMA</div>
+        <div class="cp-lbl">Medium access control</div>
+      </div>
+      <div class="constraint-pill">
+        <div class="cp-val">VC</div>
+        <div class="cp-lbl">Virtual circuits recommended</div>
+      </div>
+      <div class="constraint-pill">
+        <div class="cp-val">Anon</div>
+        <div class="cp-lbl">Origin must not be revealed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deliverables -->
+  <div class="section">
+    <div class="section-title">Deliverables</div>
+    <ul class="deliverables-list">
+      <li><i class="ti ti-code d-icon" aria-hidden="true"></i>Source code (compiles and runs)</li>
+      <li><i class="ti ti-binary d-icon" aria-hidden="true"></i>Compiled binary for x86</li>
+      <li><i class="ti ti-file-text d-icon" aria-hidden="true"></i>Documentation source in Markdown / LaTeX</li>
+      <li><i class="ti ti-file-type-pdf d-icon" aria-hidden="true"></i>Documentation PDF</li>
+      <li><i class="ti ti-file d-icon" aria-hidden="true"></i>RFC (ASCII plain text)</li>
+      <li><i class="ti ti-brand-github d-icon" aria-hidden="true"></i>Version control repo (shared with professor)</li>
+    </ul>
+  </div>
+
+  <!-- Penalties -->
+  <div class="section">
+    <div class="section-title">Automatic zero &amp; penalties</div>
+    <div class="info-card">
+      <div class="penalty-row"><span class="penalty-num">0</span><span>No documentation submitted</span></div>
+      <div class="penalty-row"><span class="penalty-num">0</span><span>Code does not compile</span></div>
+      <div class="penalty-row"><span class="penalty-num">0</span><span>Wrong language used</span></div>
+      <div class="penalty-row"><span class="penalty-num">0</span><span>Google Drive submission format not followed</span></div>
+      <div class="penalty-row"><span class="penalty-num">0</span><span>Any plagiarism (processed per regulations)</span></div>
+      <div class="penalty-row"><span class="penalty-num">−2 pts</span><span>Each unhandled exception / runtime error during defense</span></div>
+    </div>
+  </div>
+
+  <!-- Defense rules -->
+  <div class="section">
+    <div class="section-title">Defense rules</div>
+    <div class="two-col">
+      <div class="info-card">
+        <div class="ic-title">Logistics</div>
+        <ul class="ic-list">
+          <li>Max 20 minutes per group</li>
+          <li>Have everything ready before entering</li>
+          <li>Bring required hardware yourself</li>
+          <li>Need borrowed equipment → notify 2 days before</li>
+          <li>Assistants / other professors may attend</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <div class="ic-title">Documentation review</div>
+        <ul class="ic-list">
+          <li>Reviewed by professor separately</li>
+          <li>Not during the defense session</li>
+          <li>Timesheet hours must match deliverable</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
