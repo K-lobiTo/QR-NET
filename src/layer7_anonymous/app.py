@@ -67,6 +67,7 @@ class AnonymousApp:
         self.node = network_node
         self._handlers: list[Callable[[AppMessage], None]] = []
         self._posts: list[AppMessage] = []
+        self.node.on_data(self.receive)
         print("[L7-Anon] Aplicación anónima lista.")
 
     def on_message(self, handler: Callable[[AppMessage], None]) -> None:

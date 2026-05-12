@@ -18,7 +18,7 @@ import time
 import uuid
 import hashlib
 from dataclasses import dataclass, field, asdict
-from typing import Optional
+from typing import Optional, Callable
 
 # ---------------------------------------------------------------------------
 # Constantes
@@ -180,6 +180,7 @@ class QRNetNode:
         self.directory    = NodeDirectory()
         self.routing      = RoutingTable(self.node_id)
         self._circuits: dict[str, dict] = {}   # circuit_id -> {src, dst, hops}
+        self._data_handler: Optional[Callable[[str], None]] = None
         self._running     = False
         self._sock: Optional[socket.socket] = None
         print(f"[L2/3] Nodo iniciado. ID anónimo: {self.node_id[:16]}...")
@@ -268,7 +269,10 @@ class QRNetNode:
 
     def _handle_data(self, packet: QRNetPacket) -> None:
         if packet.dst_node == self.node_id:
-            print(f"[L2/3] Paquete para mí: {packet.payload}")
+            if self._data_handler:
+                self._data_handler(packet.payload)
+            else:
+                print(f"[L2/3] Paquete para mí: {packet.payload}")
             return
 
         if packet.ttl <= 0:
@@ -302,6 +306,10 @@ class QRNetNode:
         if node_info:
             self._send_raw(packet, node_info["addr"], node_info["port"])
 
+    def on_data(self, handler: Callable[[str], None]) -> None:
+        """Registra un callback para payloads recibidos destinados a este nodo."""
+        self._data_handler = handler
+
     def send_data(self, dst_node: str, payload: str) -> None:
         """Envía datos a un nodo destino a través de la mesh."""
         packet = QRNetPacket(
@@ -310,6 +318,11 @@ class QRNetNode:
             dst_node   = dst_node,
             payload    = payload,
         )
+        if dst_node == "":
+            # Broadcast a todos los nodos conocidos
+            for node_info in self.directory.all_nodes():
+                self._send_raw(packet, node_info["addr"], node_info["port"])
+            return
         self._forward(packet)
 
     def _broadcast_hello(self) -> None:
