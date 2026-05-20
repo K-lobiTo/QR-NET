@@ -183,7 +183,7 @@ class QRNetNode:
         self._data_handler: Optional[Callable[[str], None]] = None
         self._running     = False
         self._sock: Optional[socket.socket] = None
-        print(f"[L2/3] Nodo iniciado. ID anónimo: {self.node_id[:16]}...")
+        print(f"[L2/3] Nodo iniciado. ID anónimo: {self.node_id}")
 
     # ------------------------------------------------------------------
     # Anonimato

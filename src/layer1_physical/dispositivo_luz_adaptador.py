@@ -15,13 +15,21 @@ Restricciones de trama:
   - Tamaño máximo: 128 bytes
   - Campos de longitud dinámica declarados explícitamente
 """
-
+import base64
+import json
+import os
 import struct
 import hashlib
 import time
 import uuid
+
+import numpy as np
 import qrcode
 import cv2
+
+from tools import extrac_chunk
+
+
 try:
     from pyzbar import pyzbar
 except Exception:
@@ -32,7 +40,7 @@ from PIL import Image
 # Constantes del protocolo
 # ---------------------------------------------------------------------------
 PROTOCOL_VERSION  = 1          # Versión actual del protocolo
-MAX_FRAME_SIZE    = 128        # Bytes máximos por trama
+MAX_FRAME_SIZE    = 256        # Bytes máximos por trama
 PREAMBLE          = 0xAB       # Byte de inicio de trama
 FRAME_TYPE_DATA   = 0x01
 FRAME_TYPE_ACK    = 0x02
@@ -53,9 +61,9 @@ FRAME_TYPE_HELLO  = 0x03
 #  N+1..N+2 : CHECKSUM CRC-16   (2 bytes)
 # ---------------------------------------------------------------------------
 
-HEADER_SIZE   = 16   # bytes fijos antes del payload
+HEADER_SIZE   = 18   # bytes fijos antes del payload
 CHECKSUM_SIZE = 2
-MAX_PAYLOAD   = MAX_FRAME_SIZE - HEADER_SIZE - CHECKSUM_SIZE  # 110 bytes
+MAX_PAYLOAD   = MAX_FRAME_SIZE - HEADER_SIZE - CHECKSUM_SIZE  # 236 bytes
 
 
 def generate_mac() -> bytes:
@@ -216,9 +224,10 @@ class DispositivoLuzAdaptador:
              frame_type: int = FRAME_TYPE_DATA) -> None:
         """Codifica el payload en un QR y lo muestra en pantalla."""
         frame = build_frame(self.mac, dst_mac, payload, frame_type)
-        self._display_qr(frame)
+        chunk_number = extrac_chunk(parse_frame(frame))
+        self._display_qr(frame, chunk_number)
 
-    def _display_qr(self, data: bytes) -> None:
+    def _display_qr(self, data: bytes, chunk) -> None:
         """Genera y muestra un código QR con los bytes de la trama."""
         qr = qrcode.QRCode(
             version=None,
@@ -226,15 +235,20 @@ class DispositivoLuzAdaptador:
             box_size=10,
             border=4,
         )
-        qr.add_data(data)
+        encoded = base64.b64encode(data).decode("ascii")
+        qr.add_data(encoded)
         qr.make(fit=True)
+        # Imagen PIL
         img = qr.make_image(fill_color="black", back_color="white")
-        img_cv = cv2.cvtColor(
-            cv2.imencode('.png', img)[1],  # type: ignore
-            cv2.COLOR_BGR2RGB
-        )
-        cv2.imshow("QR-NET Transmisión", img_cv)
-        cv2.waitKey(500)  # Mostrar 500 ms
+        filename = f"temp-qr/qr-{chunk:010d}.png"
+        img.save(filename)
+        # img.show()
+        # Convertir PIL -> numpy array
+        # img_np = np.array(img.convert("RGB"))
+        # RGB -> BGR para OpenCV
+        # img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        # cv2.imshow("QR-NET Transmisión", img_cv)
+        # cv2.waitKey(500)  # Mostrar 500 ms
 
     # ------------------------------------------------------------------
     # Recepción

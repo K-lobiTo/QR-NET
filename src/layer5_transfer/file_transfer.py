@@ -18,7 +18,7 @@ import threading
 # ---------------------------------------------------------------------------
 # Constantes
 # ---------------------------------------------------------------------------
-MAX_FRAGMENT_PAYLOAD = 500  # bytes por fragmento (debe caber en JSON de capa 7)
+MAX_FRAGMENT_PAYLOAD = 90  # bytes por fragmento (debe caber en JSON de capa 7)
 MSG_TYPE_FILE_START = "FILE_START"
 MSG_TYPE_FILE_CHUNK = "FILE_CHUNK"
 MSG_TYPE_FILE_ACK   = "FILE_ACK"
