@@ -36,6 +36,8 @@ except Exception:
     pyzbar = None
 from PIL import Image
 
+CAMERA_URL = "http://192.168.0.10:8080/video"
+
 # ---------------------------------------------------------------------------
 # Constantes del protocolo
 # ---------------------------------------------------------------------------
@@ -175,7 +177,7 @@ def _decode_qr_frame_to_objs(frame):
                     if not s:
                         continue
                     obj = type("DecodedObj", (), {})()
-                    obj.data = s.encode("latin-1")
+                    obj.data = s
                     decoded_objs.append(obj)
                 return decoded_objs
     except Exception:
@@ -256,7 +258,7 @@ class DispositivoLuzAdaptador:
 
     def open_camera(self) -> None:
         """Abre el dispositivo de cámara."""
-        self.camera = cv2.VideoCapture(self.cam_idx)
+        self.camera = cv2.VideoCapture(CAMERA_URL)
         if not self.camera.isOpened():
             raise RuntimeError(f"No se pudo abrir la cámara (índice {self.cam_idx})")
         print(f"[L1] Cámara {self.cam_idx} abierta.")
@@ -281,7 +283,7 @@ class DispositivoLuzAdaptador:
 
         decoded = _decode_qr_frame_to_objs(frame)
         for obj in decoded:
-            raw = obj.data
+            raw = base64.b64decode(obj.data)
             parsed = parse_frame(raw)
             if parsed:
                 # Filtrar tramas no destinadas a este nodo

@@ -18,7 +18,8 @@ El receptor:
 5. Verifica integridad con hash SHA256
 6. Guarda el archivo recibido como "received_<nombre>"
 """
-
+import base64
+import json
 import sys
 import os
 import argparse
@@ -115,10 +116,52 @@ class ReceiverApp:
     def _process_received_fragment(self, raw_payload: bytes) -> None:
         """Procesa un fragmento recibido desde la cámara."""
         try:
-            # En un sistema real, el payload sería un JSON con el fragmento
-            # Por ahora, se integra con la app de transferencia
-            # El fragmento recibido llega a través de la capa 7 (AnonymousApp)
-            pass
+            # ----------------------------------------------------------
+            # Payload JSON -> dict
+            # ----------------------------------------------------------
+            fragment = json.loads(raw_payload.decode())
+            transfer_id = fragment["transfer_id"]
+            chunk_number = fragment["chunk_number"]
+            total_chunks = fragment["total_chunks"]
+            encoded_data = fragment["data"]
+            # ----------------------------------------------------------
+            # Base64 -> bytes reales
+            # ----------------------------------------------------------
+            chunk_data = base64.b64decode(encoded_data)
+            # ----------------------------------------------------------
+            # Directorio temporal de recepción
+            # ----------------------------------------------------------
+            transfer_dir = os.path.join(
+                "temp-rx",
+                transfer_id
+            )
+            os.makedirs(transfer_dir, exist_ok=True)
+            # ----------------------------------------------------------
+            # Guardar chunk
+            # ----------------------------------------------------------
+            chunk_path = os.path.join(
+                transfer_dir,
+                f"{chunk_number:010d}.chunk"
+            )
+            with open(chunk_path, "wb") as f:
+                f.write(chunk_data)
+            print(
+                f"[RX] Fragmento {chunk_number + 1}/{total_chunks} "
+                f"recibido"
+            )
+            # ----------------------------------------------------------
+            # Verificar completitud
+            # ----------------------------------------------------------
+            received_chunks = [
+                f for f in os.listdir(transfer_dir)
+                if f.endswith(".chunk")
+            ]
+            if len(received_chunks) == total_chunks:
+                print("[RX] Todos los fragmentos recibidos")
+                self._rebuild_file(
+                    transfer_dir,
+                    total_chunks
+                )
         except Exception as e:
             print(f"[Receptor] Error procesando fragmento: {e}")
 
@@ -183,6 +226,25 @@ class ReceiverApp:
                 print(f"   Guardado en: {output}")
 
         print(f"\n{'─'*70}\n")
+
+    def _rebuild_file(self, transfer_dir: str, total_chunks: int) -> None:
+
+        output_path = os.path.join(
+            transfer_dir,
+            "reconstructed_file"
+        )
+
+        with open(output_path, "wb") as outfile:
+            for i in range(total_chunks):
+                chunk_path = os.path.join(
+                    transfer_dir,
+                    f"{i:04d}.chunk"
+                )
+
+                with open(chunk_path, "rb") as infile:
+                    outfile.write(infile.read())
+
+        print(f"[RX] Archivo reconstruido: {output_path}")
 
     def cleanup(self):
         """Limpia recursos."""
