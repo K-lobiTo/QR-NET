@@ -27,7 +27,7 @@ import numpy as np
 import qrcode
 import cv2
 
-from tools import extrac_chunk
+from tools import extract_chunk_number
 
 
 try:
@@ -224,7 +224,7 @@ class DispositivoLuzAdaptador:
              frame_type: int = FRAME_TYPE_DATA) -> None:
         """Codifica el payload en un QR y lo muestra en pantalla."""
         frame = build_frame(self.mac, dst_mac, payload, frame_type)
-        chunk_number = extrac_chunk(parse_frame(frame))
+        chunk_number = extract_chunk_number(parse_frame(frame))
         self._display_qr(frame, chunk_number)
 
     def _display_qr(self, data: bytes, chunk) -> None:

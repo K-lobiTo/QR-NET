@@ -31,6 +31,7 @@ from layer1_physical.dispositivo_luz_adaptador import DispositivoLuzAdaptador
 from layer2_3_network.node import QRNetNode
 from layer7_anonymous.app import AnonymousApp
 from layer7_file_transfer.file_transfer_app import FileTransferApp
+from qr_displayer import QRDisplayer
 
 
 class SenderApp:
@@ -105,17 +106,18 @@ class SenderApp:
             # Mostrar QR (simula transmisión por luz)
             try:
                 # En un sistema real, usarías:
-                # self.luz_device.send(dst_mac, fragment_bytes)
+                self.luz_device.send(self.luz_device.mac, fragment_bytes)
                 # Por ahora, mostramos solo el fragmento
-                print(f" ✓ ({len(fragment_bytes)} bytes)")
-                time.sleep(2)  # Mostrar 2 segundos
+                # print(f" ✓ ({len(fragment_bytes)} bytes)")
+                # time.sleep(2)  # Mostrar 2 segundos
             except Exception as e:
                 print(f" ✗ Error: {e}")
                 return False
 
         # Esperar a que termine el envío
         send_thread.join(timeout=60)
-
+        viewer = QRDisplayer()
+        viewer.show_sequence(len(fragments))
         print(f"\n{'─'*70}")
         print("✓ Emisión completada\n")
         return True
