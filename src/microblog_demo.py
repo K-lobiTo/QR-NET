@@ -25,6 +25,27 @@ from layer7_anonymous.app import AnonymousApp
 
 
 class MicroblogDemo:
+    def run_monitor(self, topic: str = None):
+        print("\n[MicroblogDemo] Monitor de posts en tiempo real")
+        print(f"[MicroblogDemo] Node ID: {self.node.node_id}")
+        print("[MicroblogDemo] Mostrando posts nuevos... Ctrl+C para salir\n")
+
+        seen_ids = set()
+        try:
+            while True:
+                posts = self.app.get_posts(topic)
+                new_posts = [p for p in posts if p.message_id not in seen_ids]
+                for p in new_posts:
+                    seen_ids.add(p.message_id)
+                    print("[Nuevo Post]")
+                    print(f"  Hora: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(p.timestamp))}")
+                    print(f"  Tópico: {p.topic}")
+                    print(f"  Contenido: {p.content}")
+                    print(f"  Público: {p.is_public}\n")
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n[MicroblogDemo] Finalizando monitor...")
+            self.node.stop()
     def __init__(self, host: str, port: int):
         self.node = QRNetNode(host, port)
         self.node.start()
@@ -77,8 +98,14 @@ class MicroblogDemo:
 
 
 def main():
+
     parser = argparse.ArgumentParser(description="QR-NET Microblog Demo")
     subparsers = parser.add_subparsers(dest='mode', required=True)
+
+    monitor_parser = subparsers.add_parser('monitor', help='Monitorear posts en tiempo real')
+    monitor_parser.add_argument('--host', default='0.0.0.0', help='Host local (default 0.0.0.0)')
+    monitor_parser.add_argument('--port', type=int, default=9000, help='Puerto UDP (default 9000)')
+    monitor_parser.add_argument('--topic', help='Filtrar por tópico (opcional)')
 
     receiver_parser = subparsers.add_parser('receive', help='Iniciar receptor de microblog')
     receiver_parser.add_argument('--host', default='0.0.0.0', help='Host local (default 0.0.0.0)')
@@ -109,6 +136,8 @@ def main():
             topic=args.topic,
             public=args.public,
         )
+    elif args.mode == 'monitor':
+        demo.run_monitor(topic=args.topic)
 
 
 if __name__ == '__main__':

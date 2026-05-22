@@ -107,6 +107,10 @@ class AnonymousApp:
         """Procesa un payload crudo recibido desde la capa de red."""
         try:
             msg = AppMessage.from_json(raw_payload)
+            if msg.msg_type == MSG_POST:
+                # Evitar duplicados por message_id
+                if not any(p.message_id == msg.message_id for p in self._posts):
+                    self._posts.append(msg)
             for handler in self._handlers:
                 handler(msg)
         except Exception as e:
