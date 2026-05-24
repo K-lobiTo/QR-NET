@@ -227,10 +227,10 @@ class DispositivoLuzAdaptador:
         """Codifica el payload en un QR y lo muestra en pantalla."""
         frame = build_frame(self.mac, dst_mac, payload, frame_type)
         chunk_number = extract_chunk_number(parse_frame(frame))
-        self._display_qr(frame, chunk_number)
+        self._save_qr(frame, chunk_number)
 
-    def _display_qr(self, data: bytes, chunk) -> None:
-        """Genera y muestra un código QR con los bytes de la trama."""
+    def _save_qr(self, data: bytes, chunk) -> None:
+        """Genera y guarda un código QR con los bytes de la trama."""
         qr = qrcode.QRCode(
             version=None,
             error_correction=qrcode.constants.ERROR_CORRECT_M,

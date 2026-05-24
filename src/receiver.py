@@ -101,7 +101,7 @@ class ReceiverApp:
                     else:
                         failed_frames += 1
 
-                    time.sleep(0.1)  # Pequeña pausa entre intentos
+                    # time.sleep(0.1)  # Pequeña pausa entre intentos
 
                 except Exception as e:
                     print(f"[Luz-L1] Error capturando: {e}")
