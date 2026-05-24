@@ -238,7 +238,7 @@ class ReceiverApp:
             for i in range(total_chunks):
                 chunk_path = os.path.join(
                     transfer_dir,
-                    f"{i:04d}.chunk"
+                    f"{i:010d}.chunk"
                 )
 
                 with open(chunk_path, "rb") as infile:

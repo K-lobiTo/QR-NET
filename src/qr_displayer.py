@@ -63,7 +63,7 @@ class QRDisplayer:
 
             print(f"  [{index}/{len(files)}] Mostrando QR en pantalla...")
             index = index + 1
-            time.sleep(DISPLAY_MS / 100)
+            time.sleep(DISPLAY_MS / 50)
 
         self.root.destroy()
 
