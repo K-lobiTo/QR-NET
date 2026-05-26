@@ -36,7 +36,7 @@ except Exception:
     pyzbar = None
 from PIL import Image
 
-CAMERA_URL = "http://192.168.0.10:8080/video"
+CAMERA_URL = "http://10.100.43.106:8080/video"
 
 # ---------------------------------------------------------------------------
 # Constantes del protocolo
@@ -47,6 +47,7 @@ PREAMBLE          = 0xAB       # Byte de inicio de trama
 FRAME_TYPE_DATA   = 0x01
 FRAME_TYPE_ACK    = 0x02
 FRAME_TYPE_HELLO  = 0x03
+BROADCAST_MAC     = b"\xff\xff\xff\xff\xff\xff"
 
 
 # ---------------------------------------------------------------------------
@@ -288,7 +289,7 @@ class DispositivoLuzAdaptador:
             if parsed:
                 # Filtrar tramas no destinadas a este nodo
                 if parsed["dst_mac"] != self.mac.hex(":") \
-                   and parsed["dst_mac"] != "ff:ff:ff:ff:ff:ff":
+                   and parsed["dst_mac"] != BROADCAST_MAC.hex(":"):
                     continue
                 return parsed
         return None

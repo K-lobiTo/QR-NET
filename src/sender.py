@@ -27,7 +27,7 @@ import threading
 # Agregar src al path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from layer1_physical.dispositivo_luz_adaptador import DispositivoLuzAdaptador
+from layer1_physical.dispositivo_luz_adaptador import BROADCAST_MAC, DispositivoLuzAdaptador
 from layer2_3_network.node import QRNetNode
 from layer7_anonymous.app import AnonymousApp
 from layer7_file_transfer.file_transfer_app import FileTransferApp
@@ -105,8 +105,8 @@ class SenderApp:
 
             # Mostrar QR (simula transmisión por luz)
             try:
-                # En un sistema real, usarías:
-                self.luz_device.send(self.luz_device.mac, fragment_bytes)
+                # En un sistema real, usarías broadcast para que cualquier receptor pueda leerlo.
+                self.luz_device.send(BROADCAST_MAC, fragment_bytes)
                 # Por ahora, mostramos solo el fragmento
                 # print(f" ✓ ({len(fragment_bytes)} bytes)")
                 # time.sleep(2)  # Mostrar 2 segundos
