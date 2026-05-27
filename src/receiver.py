@@ -5,18 +5,17 @@ Script Receptor — Transferencia de Archivos QR-NET
 Captura fragmentos de archivos desde QRs usando cámara y reensambl el archivo.
 
 Uso:
-    python receiver.py [--host 0.0.0.0] [--port 9000] [--camera 0]
+    python receiver.py [--camera 0]
 
 Ejemplo:
-    python receiver.py --host 192.168.1.101 --port 9000
+    python receiver.py --camera 0
     
 El receptor:
-1. Inicia un nodo QR-NET en espera
-2. Conecta la cámara y comienza a capturar QRs
-3. Decodifica los fragmentos a medida que llegan
-4. Reensambl automáticamente cuando completa
-5. Verifica integridad con hash SHA256
-6. Guarda el archivo recibido como "received_<nombre>"
+1. Conecta la cámara y comienza a capturar QRs
+2. Decodifica los fragmentos a medida que llegan
+3. Guarda los fragmentos temporales en `temp-rx/<transfer_id>`
+4. Reensambl automáticamente cuando se reciben todos los fragmentos
+5. Guarda el archivo recibido como `reconstructed_file`
 """
 import base64
 import json
@@ -30,27 +29,15 @@ import threading
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from layer1_physical.dispositivo_luz_adaptador import DispositivoLuzAdaptador
-from layer2_3_network.node import QRNetNode
-from layer7_anonymous.app import AnonymousApp
-from layer7_file_transfer.file_transfer_app import FileTransferApp
 
 
 class ReceiverApp:
     """Aplicación receptora de archivos con captura de QRs."""
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 9000, camera_index: int = 0):
+    def __init__(self, camera_index: int = 0):
         print("\n" + "="*70)
         print("QR-NET FILE TRANSFER — RECEPTOR")
         print("="*70)
-
-        # Inicializar capas
-        self.node = QRNetNode(host, port)
-        self.node.start()
-        print(f"\n[Receptor] Nodo iniciado en {host}:{port}")
-        print(f"[Receptor] ID del nodo: {self.node.node_id[:8]}...\n")
-
-        self.anon_app = AnonymousApp(self.node)
-        self.file_transfer_app = FileTransferApp(self.anon_app)
 
         # Dispositivo de luz para capturar QRs
         self.luz_device = DispositivoLuzAdaptador(camera_index=camera_index)
@@ -178,52 +165,36 @@ class ReceiverApp:
         print(f"[Receptor] Esperando archivos (timeout: {timeout}s)...\n")
 
         start_time = time.time()
-        last_count = 0
-
         while time.time() - start_time < timeout:
-            files = self.file_transfer_app.receive_files()
-
-            # Mostrar progreso si hay nuevos archivos
-            if len(files) > last_count:
-                last_count = len(files)
-                for f in files:
-                    if f.get("status") == "completed":
-                        print(f"\n✓ Archivo completado: {f.get('output_path')}")
-                    else:
-                        progress = f.get("received_chunks", 0)
-                        total = f.get("total_chunks", 0)
-                        percent = (progress / total * 100) if total > 0 else 0
-                        print(f"[{progress}/{total}] {f.get('filename')} ({percent:.0f}%)")
-
+            completed = self._find_completed_files()
+            if completed:
+                for path in completed:
+                    print(f"\n✓ Archivo completado: {path}")
+                return True
             time.sleep(1)
 
-        files = self.file_transfer_app.receive_files()
-        return len(files) > 0
+        return False
 
     def list_received_files(self) -> None:
         """Lista los archivos recibidos."""
-        files = self.file_transfer_app.receive_files()
+        completed = self._find_completed_files()
 
-        if not files:
+        if not completed:
             print("\n[Receptor] No hay archivos recibidos.\n")
             return
 
         print(f"\n{'─'*70}")
-        print(f"Archivos recibidos ({len(files)}):")
+        print(f"Archivos recibidos ({len(completed)}):")
         print(f"{'─'*70}")
 
-        for i, f in enumerate(files, 1):
-            filename = f.get("filename")
-            size = f.get("file_size")
-            status = f.get("status", "unknown")
-            output = f.get("output_path", "N/A")
+        for i, path in enumerate(completed, 1):
+            size = os.path.getsize(path) if os.path.exists(path) else 0
+            transfer_id = os.path.basename(os.path.dirname(path))
 
-            size_str = f"{size} bytes" if size else "?"
-            print(f"\n{i}. {filename}")
-            print(f"   Tamaño: {size_str}")
-            print(f"   Estado: {status}")
-            if status == "completed":
-                print(f"   Guardado en: {output}")
+            print(f"\n{i}. {os.path.basename(path)}")
+            print(f"   Transfer ID: {transfer_id}")
+            print(f"   Tamaño: {size} bytes")
+            print(f"   Guardado en: {path}")
 
         print(f"\n{'─'*70}\n")
 
@@ -246,10 +217,24 @@ class ReceiverApp:
 
         print(f"[RX] Archivo reconstruido: {output_path}")
 
+    def _find_completed_files(self) -> list[str]:
+        base_dir = "temp-rx"
+        completed = []
+        if not os.path.exists(base_dir):
+            return completed
+
+        for transfer_id in os.listdir(base_dir):
+            transfer_dir = os.path.join(base_dir, transfer_id)
+            if not os.path.isdir(transfer_dir):
+                continue
+            output_path = os.path.join(transfer_dir, "reconstructed_file")
+            if os.path.isfile(output_path):
+                completed.append(output_path)
+        return sorted(completed)
+
     def cleanup(self):
         """Limpia recursos."""
         self.stop_camera_capture()
-        self.node.stop()
         print("[Receptor] Aplicación cerrada.\n")
 
 
@@ -260,13 +245,10 @@ def main():
         epilog="""
 Ejemplos:
   python receiver.py
-  python receiver.py --host 192.168.1.101 --port 9000
   python receiver.py --camera 1  # Usar segunda cámara
         """
     )
 
-    parser.add_argument("--host", default="0.0.0.0", help="Host local (default: 0.0.0.0)")
-    parser.add_argument("--port", type=int, default=9000, help="Puerto UDP (default: 9000)")
     parser.add_argument("--camera", type=int, default=0, help="Índice de cámara (default: 0)")
     parser.add_argument("--timeout", type=float, default=300, help="Timeout en segundos (default: 300)")
     parser.add_argument("--no-listen", action="store_true", help="No capturar con cámara")
@@ -275,7 +257,7 @@ Ejemplos:
 
     try:
         # Crear aplicación receptora
-        receiver = ReceiverApp(args.host, args.port, args.camera)
+        receiver = ReceiverApp(args.camera)
 
         # Iniciar captura de cámara
         if not args.no_listen:

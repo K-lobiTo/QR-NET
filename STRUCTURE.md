@@ -212,28 +212,26 @@ source venv/bin/activate
 ### Paso 2: Iniciar receptor (con cámara)
 
 ```bash
-# Máquina A (192.168.1.101)
-python src/receiver.py --host 192.168.1.101 --port 9000
+# Máquina A
+python src/receiver.py --camera 0
 ```
 
 **Salida:**
 ```
-[Receptor] Nodo iniciado en 192.168.1.101:9000
-[Receptor] ID del nodo: abc123def456...
+[Receptor] Captura de cámara iniciada
+[Luz-L1] Cámara abierta, buscando QRs...
 [Receptor] Esperando archivos...
 ```
 
 ### Paso 3: Iniciar emisor (muestra QRs)
 
 ```bash
-# Máquina B (192.168.1.100)
-python src/sender.py documento.pdf abc123def456 192.168.1.100
+# Máquina B
+python src/sender.py documento.pdf
 ```
 
 **Salida:**
 ```
-[Emisor] Nodo iniciado en 192.168.1.100:9000
-
 Archivo: documento.pdf
 Tamaño: 50MB
 Fragmentos: 256
@@ -242,6 +240,7 @@ Mostrando fragmentos en pantalla:
 [1/256] ✓
 [2/256] ✓
 ...
+✓ Emisión completada
 ```
 
 ## 📋 Archivos de Referencia
@@ -299,12 +298,12 @@ DEFAULT_TIMEOUT = 300           # segundos
 
 ### "¿Cómo envío un archivo?"
 ```bash
-python src/sender.py archivo.bin nodo-destino --host 192.168.1.100
+python src/sender.py archivo.bin
 ```
 
 ### "¿Cómo recibo archivos?"
 ```bash
-python src/receiver.py --host 192.168.1.101 --camera 0
+python src/receiver.py --camera 0
 ```
 
 ### "¿Cómo encuentro mi ID de nodo?"

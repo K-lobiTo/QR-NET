@@ -105,19 +105,15 @@ run_receiver() {
 run_sender() {
     print_header "Modo Emisor"
 
-    if [ $# -lt 2 ]; then
-        print_error "Uso: $0 send <archivo> <nodo-destino> [host] [puerto]"
+    if [ $# -lt 1 ]; then
+        print_error "Uso: $0 send <archivo>"
         echo ""
         echo "Ejemplo:"
-        echo "  $0 send documento.pdf abc123def456"
-        echo "  $0 send documento.pdf abc123def456 192.168.1.100 9000"
+        echo "  $0 send documento.pdf"
         exit 1
     fi
 
-    FILE="$2"
-    DEST="$3"
-    HOST="${4:-0.0.0.0}"
-    PORT="${5:-9000}"
+    FILE="$1"
 
     if [ ! -f "$FILE" ]; then
         print_error "Archivo no encontrado: $FILE"
@@ -127,13 +123,10 @@ run_sender() {
     print_header "Modo Emisor"
     echo -e "\nEnviando archivo...\n"
     echo "Archivo: $FILE"
-    echo "Destino: $DEST"
-    echo "Host: $HOST"
-    echo "Puerto: $PORT"
     echo ""
 
     cd "$SRC_DIR"
-    python3 sender.py "$FILE" "$DEST" --host "$HOST" --port "$PORT"
+    python3 sender.py "$FILE"
 }
 
 # Modo demostración
@@ -144,8 +137,8 @@ run_demo() {
 
     print_info "Este modo ejecutará una transferencia de demostración"
     print_info "Se requieren:"
-    print_info "  1. Dos máquinas en la misma red"
-    print_info "  2. Una cámara en la máquina receptora"
+    print_info "  1. Una cámara en la máquina receptora"
+    print_info "  2. El emisor debe tener visibilidad de la pantalla"
     echo ""
     read -p "¿Continuar? (s/n) " -n 1 -r
     echo
@@ -157,12 +150,10 @@ run_demo() {
     echo ""
 
     if [[ $role =~ ^[Rr]$ ]]; then
-        read -p "Ingresa tu IP local (ej: 192.168.1.101): " recv_host
-        run_receiver --host "$recv_host" --port 9000
+        read -p "Ingresa el índice de tu cámara (ej: 0): " camera_index
+        run_receiver --camera "$camera_index"
     else
-        read -p "Ingresa tu IP local (ej: 192.168.1.100): " send_host
-        read -p "Ingresa ID del nodo receptor (primeras 8 caracteres): " recv_id
-        run_sender "test_upload.bin" "$recv_id" "$send_host" 9000
+        run_sender "test_upload.bin"
     fi
 }
 
@@ -177,13 +168,13 @@ COMANDOS:
   ./quickstart.sh check
       Verifica que todas las dependencias estén instaladas
 
-  ./quickstart.sh receive [--host HOST] [--port PORT]
-      Inicia como receptor (escucha archivos entrantes)
-      Ejemplo: ./quickstart.sh receive --host 192.168.1.101
+  ./quickstart.sh receive [--camera CAM]
+      Inicia como receptor (captura QRs por cámara)
+      Ejemplo: ./quickstart.sh receive --camera 0
 
-  ./quickstart.sh send <archivo> <nodo-destino> [HOST] [PUERTO]
-      Inicia como emisor (envía un archivo)
-      Ejemplo: ./quickstart.sh send documento.pdf abc123def456
+  ./quickstart.sh send <archivo>
+      Inicia como emisor (envía un archivo via QR)
+      Ejemplo: ./quickstart.sh send documento.pdf
 
   ./quickstart.sh demo
       Ejecuta demostración interactiva
@@ -194,11 +185,10 @@ COMANDOS:
 EJEMPLOS DE TRANSFERENCIA:
 
   Machine A (Receptor):
-    $ ./quickstart.sh receive --host 192.168.1.101
-    [Receptor] ID del nodo: abc123def456...
+    $ ./quickstart.sh receive --camera 0
 
   Machine B (Emisor):
-    $ ./quickstart.sh send documento.pdf abc123def456 192.168.1.100
+    $ ./quickstart.sh send documento.pdf
 
 CONFIGURACIÓN:
 

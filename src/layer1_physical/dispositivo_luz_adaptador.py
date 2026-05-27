@@ -36,7 +36,7 @@ except Exception:
     pyzbar = None
 from PIL import Image
 
-CAMERA_URL = "http://10.100.43.106:8080/video"
+CAMERA_URL = "http://192.168.0.106:8080/video"
 
 # ---------------------------------------------------------------------------
 # Constantes del protocolo
@@ -262,7 +262,7 @@ class DispositivoLuzAdaptador:
         self.camera = cv2.VideoCapture(CAMERA_URL)
         if not self.camera.isOpened():
             raise RuntimeError(f"No se pudo abrir la cámara (índice {self.cam_idx})")
-        print(f"[L1] Cámara {self.cam_idx} abierta.")
+        print(f"[L1] Cámara {self.cam_idx} abierta. Esperando scan de QRs...")
 
     def close_camera(self) -> None:
         if self.camera:

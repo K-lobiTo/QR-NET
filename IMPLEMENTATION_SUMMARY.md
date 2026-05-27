@@ -81,25 +81,25 @@ docs/
 ### ✓ Requisito 1: Emisor muestra QRs en pantalla
 
 ```bash
-python sender.py documento.pdf nodo-destino-id
+python sender.py documento.pdf
 ```
 
 **Características:**
 - Lee archivo de disco
-- Fragmenta en QRs (~500 bytes each)
-- Muestra cada QR en ventana OpenCV (2segundos/QR)
+- Fragmenta en QRs (~500 bytes cada uno)
+- Muestra cada QR en ventana OpenCV
 - Usuario ve el progreso
 - Envía metadatos al inicio (nombre, tamaño, hash)
 
 ### ✓ Requisito 2: Receptor captura con cámara
 
 ```bash
-python receiver.py --host 192.168.1.101 --camera 0
+python receiver.py --camera 0
 ```
 
 **Características:**
 - Abre cámara (configurable)
-- Detecta QRs en tiempo real
+- Captura QRs en tiempo real
 - Decodifica automáticamente
 - Muestra progreso (e.g., `[12/50] Fragmento recibido`)
 - Captura múltiples QRs en secuencia
@@ -131,13 +131,12 @@ python receiver.py --host 192.168.1.101 --camera 0
 ```bash
 cd /home/klob/Documents/redes/projects/1/QR-NET
 source venv/bin/activate
-python src/receiver.py --host 192.168.1.101 --port 9000
+python src/receiver.py --camera 0
 ```
 
 Output:
 ```
-[Receptor] Nodo iniciado en 192.168.1.101:9000
-[Receptor] ID del nodo: abc123def456...
+[Receptor] Captura de cámara iniciada
 [Luz-L1] Cámara abierta, buscando QRs...
 [Receptor] Esperando archivos (timeout: 300s)...
 ```
@@ -146,14 +145,11 @@ Output:
 ```bash
 cd /home/klob/Documents/redes/projects/1/QR-NET
 source venv/bin/activate
-python src/sender.py archivo.zip abc123def456 192.168.1.100
+python src/sender.py archivo.zip
 ```
 
 Output:
 ```
-[Emisor] Nodo iniciado en 192.168.1.100:9000
-[Emisor] ID del nodo: xyz789uva...
-
 Archivo: archivo.zip
 Tamaño: 1024000 bytes
 Fragmentos: 45
@@ -168,8 +164,8 @@ Mostrando fragmentos en pantalla:
 ### Opción 2: Script bash
 
 ```bash
-./quickstart.sh receive --host 192.168.1.101
-./quickstart.sh send documento.pdf abc123def456 192.168.1.100
+./quickstart.sh receive --camera 0
+./quickstart.sh send documento.pdf
 ```
 
 ### Opción 3: Python directo

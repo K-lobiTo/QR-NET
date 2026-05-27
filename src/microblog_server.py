@@ -132,14 +132,12 @@ def start_server(receiver: ReceiverApp):
 def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--host", default="0.0.0.0", help="Host local (default: 0.0.0.0)")
-    parser.add_argument("--port", type=int, default=9000, help="Puerto UDP (default: 9000)")
     parser.add_argument("--camera", type=int, default=0, help="Índice de cámara (default: 0)")
 
     args = parser.parse_args()
     try:
         # Crear aplicación receptora
-        receiver = ReceiverApp(args.host, args.port, args.camera)
+        receiver = ReceiverApp(args.camera)
         # Iniciar captura de cámara
         start_server(receiver)
     except KeyboardInterrupt:

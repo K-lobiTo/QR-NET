@@ -62,10 +62,10 @@ Nuevo: **Transferencia de archivos fragmentados vía QR con captura por cámara*
 
 ```bash
 # En máquina receptora (con cámara):
-./quickstart.sh receive --host 192.168.1.101
+./quickstart.sh receive --camera 0
 
 # En máquina emisora:
-./quickstart.sh send archivo.pdf abc123def456 192.168.1.100
+./quickstart.sh send archivo.pdf
 ```
 
 ### Características

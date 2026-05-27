@@ -71,7 +71,7 @@ python3 -c "import cv2; cap = cv2.VideoCapture(0); print('Cámara 0:', cap.isOpe
 ```bash
 cd src
 source ../venv/bin/activate
-python receiver.py --host 192.168.1.101 --port 9000
+python receiver.py --camera 0
 ```
 
 **Salida esperada:**
@@ -79,9 +79,6 @@ python receiver.py --host 192.168.1.101 --port 9000
 ======================================================================
 QR-NET FILE TRANSFER — RECEPTOR
 ======================================================================
-
-[Receptor] Nodo iniciado en 192.168.1.101:9000
-[Receptor] ID del nodo: a1b2c3d4...
 
 [Receptor] Captura de cámara iniciada
 
@@ -95,7 +92,7 @@ QR-NET FILE TRANSFER — RECEPTOR
 ```bash
 cd src
 source ../venv/bin/activate
-python sender.py documento.pdf a1b2c3d4 --host 192.168.1.100 --port 9000
+python sender.py documento.pdf
 ```
 
 **Salida esperada:**
@@ -104,20 +101,16 @@ python sender.py documento.pdf a1b2c3d4 --host 192.168.1.100 --port 9000
 QR-NET FILE TRANSFER — EMISOR
 ======================================================================
 
-[Emisor] Nodo iniciado en 192.168.1.100:9000
-[Emisor] ID del nodo: x9y8z7w6...
-
-──────────────────────────────────────────────────────────────────────
 Archivo: documento.pdf
 Tamaño: 24576 bytes
-Destino: a1b2c3d4
+──────────────────────────────────────────────────────────────────────
 
 Fragmentos a enviar: 50
 
 Mostrando fragmentos en pantalla:
 
-  [1/50] Mostrando fragmento en pantalla... ✓ (542 bytes)
-  [2/50] Mostrando fragmento en pantalla... ✓ (542 bytes)
+  [1/50] Mostrando fragmento en pantalla... ✓
+  [2/50] Mostrando fragmento en pantalla... ✓
   ...
 ──────────────────────────────────────────────────────────────────────
 ✓ Emisión completada
@@ -128,11 +121,11 @@ Mostrando fragmentos en pantalla:
 Para probar en un solo dispositivo sin necesidad de dos cámaras:
 
 ```bash
-# Terminal 1 — Receptor en modo telnet (sin cámara)
-python receiver.py --port 9001 --no-listen
+# Terminal 1 — Receptor en modo sin captura de cámara
+python receiver.py --no-listen
 
 # Terminal 2 — Emisor
-python sender.py documento.pdf <node-id-receptor> --port 9000
+python sender.py documento.pdf
 ```
 
 ## Formato de Protocolo
@@ -179,20 +172,15 @@ python sender.py documento.pdf <node-id-receptor> --port 9000
 ```
 positional arguments:
   archivo               Ruta del archivo a enviar
-  destino              ID del nodo receptor
 
 optional arguments:
-  --host HOST          Host local (default: 0.0.0.0)
-  --port PORT          Puerto UDP (default: 9000)
-  --no-display         No mostrar QRs (modo silencioso)
+  --no-display         No mostrar la secuencia de QRs en pantalla
 ```
 
 ### Receptor (`receiver.py`)
 
 ```
 optional arguments:
-  --host HOST          Host local (default: 0.0.0.0)
-  --port PORT          Puerto UDP (default: 9000)
   --camera CAMERA      Índice de cámara (default: 0)
   --timeout TIMEOUT    Timeout en segundos (default: 300)
   --no-listen          No capturar con cámara
@@ -204,8 +192,8 @@ optional arguments:
 
 ```python
 # sender.py
-sender = SenderApp(host="192.168.1.100", port=9000)
-sender.send_file_with_qr_display("archivo.bin", "node-destino")
+sender = SenderApp()
+sender.send_file_with_qr_display("archivo.bin")
 ```
 
 **Internamente:**
@@ -312,14 +300,16 @@ python receiver.py
 
 ### Problema: "Connection refused"
 
-```bash
-# Verificar que los puertos no están en uso
-lsof -i :9000
-netstat -tulpn | grep 9000
+Este proyecto ya no usa sockets UDP directos para la transferencia. Si ves errores relacionados con cámara o módulos faltantes, revisa lo siguiente:
 
-# Usar puertos diferentes
-python receiver.py --port 9001
-python sender.py archivo.bin node-id --port 9000
+```bash
+# Verificar disponibilidad de la cámara
+python3 -c "import cv2; cap = cv2.VideoCapture(0); print(cap.isOpened())"
+
+# Ejecutar desde el directorio src/
+cd src
+python receiver.py --camera 0
+python sender.py archivo.bin
 ```
 
 ### Problema: Hash mismatch
@@ -402,26 +392,45 @@ manager.reassemble_file(transfer_id, "output.bin")
 success = manager.verify_transferred_file(transfer_id, "output.bin")
 ```
 
-### FileTransferApp
+### SenderApp (Nueva API Simplificada)
 
 ```python
-# Enviar archivo
-transfer_id = app.send_file("nodo-destino", "archivo.bin")
+# Crear emisor
+sender = SenderApp()
 
-# Esperar transferencia
-output_path = app.wait_for_transfer(transfer_id, timeout=300)
+# Enviar archivo con visualización de QRs
+sender.send_file_with_qr_display("documento.pdf", show_display=True)
 
-# État de la transferencia
-status = app.get_transfer_status(transfer_id)
+# Limpiar
+sender.cleanup()
+```
+
+### ReceiverApp (Nueva API Simplificada)
+
+```python
+# Crear receptor
+receiver = ReceiverApp(camera_index=0)
+
+# Capturar archivos
+receiver.start_camera_capture()
+
+# Esperar archivos
+receiver.wait_for_file(timeout=300)
+
+# Listar archivos recibidos
+receiver.list_received_files()
+
+# Limpiar
+receiver.cleanup()
 ```
 
 ### DispositivoLuzAdaptador
 
 ```python
-# Transmitir
+# Transmitir QR
 device.send(dst_mac, payload_bytes)
 
-# Recibir
+# Recibir QR
 frame_data = device.receive()
 
 # Control de medio
@@ -431,60 +440,63 @@ success = device.wait_and_send(dst_mac, payload)
 
 ## Ejemplos de Código
 
-### Ejemplo 1: Enviar archivo simple
+### Ejemplo 1: Enviar archivo simple con QRs
 
 ```python
-from layer7_file_transfer import FileTransferApp
-from layer7_anonymous.app import AnonymousApp
-from layer2_3_network.node import QRNetNode
+from sender import SenderApp
 
-# Inicializar capas
-node = QRNetNode("192.168.1.100", 9000)
-node.start()
+# Crear emisor
+sender = SenderApp()
 
-app = AnonymousApp(node)
-file_app = FileTransferApp(app)
+# Enviar documento
+sender.send_file_with_qr_display("documento.pdf")
 
-# Enviar
-file_app.send_file("node-receptor-id", "documento.pdf")
-
-node.stop()
+# Limpiar
+sender.cleanup()
 ```
 
-### Ejemplo 2: Recibir archivo con timeout
+### Ejemplo 2: Recibir archivo con cámara
 
 ```python
-# Esperar 5 minutos a que llegue un archivo
-output = file_app.wait_for_transfer("transfer-id-123", timeout=300)
+from receiver import ReceiverApp
 
-if output:
-    print(f"✓ Archivo guardado en: {output}")
-else:
-    print("✗ Timeout o error en transferencia")
+# Crear receptor
+receiver = ReceiverApp(camera_index=0)
+
+# Iniciar captura
+receiver.start_camera_capture()
+
+# Esperar archivos
+receiver.wait_for_file(timeout=300)
+
+# Ver resultados
+receiver.list_received_files()
+
+# Limpiar
+receiver.cleanup()
 ```
 
-### Ejemplo 3: Barra de progreso personalizada
+### Ejemplo 3: Transferencia silenciosa (sin visualización)
 
 ```python
-import time
+from sender import SenderApp
 
-while True:
-    progress, total = file_app.manager.get_transfer_progress("transfer-id")
-    percent = (progress / total * 100) if total > 0 else 0
-    print(f"\rProgreso: {progress}/{total} ({percent:.0f}%)", end="")
-    
-    if progress == total:
-        break
-    time.sleep(1)
+# Crear emisor
+sender = SenderApp()
+
+# Enviar sin visualizar QRs en pantalla
+sender.send_file_with_qr_display("documento.pdf", show_display=False)
+
+# Limpiar
+sender.cleanup()
 ```
-
 ## Notas para el Desarrollo
 
 ### Para mejorar la velocidad de transmisión:
 
-1. **Reducir tiempo de espera entre QRs**: De 2s a 0.5s en `sender.py`
+1. **Reducir tiempo de espera entre QRs**: De 1s a 0.5s en `sender.py`
 2. **Fragmentos más grandes**: Aumentar `MAX_FRAGMENT_PAYLOAD` en `file_transfer.py`
-3. **Paralelización**: Enviar múltiples fragmentos simultáneamente
+3. **Paralelización**: Capturar múltiples fragmentos simultáneamente
 
 ### Para mejorar la confiabilidad:
 

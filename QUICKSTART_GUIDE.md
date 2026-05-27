@@ -70,14 +70,12 @@ pip install opencv-python qrcode pyzbar pillow
 ```bash
 # En Linux/Mac
 hostname -I
-# O
-ifconfig | grep "inet " | grep -v 127.0.0.1
+# O ver todas las IPs
+ip addr show
 
 # En Windows
 ipconfig
 ```
-
-**Anota esta IP, ej: `192.168.1.101`**
 
 ### Paso 2.2: Crear archivo de ejemplo (opcional)
 
@@ -91,9 +89,9 @@ dd if=/dev/urandom of=test_file.bin bs=1M count=1
 
 ---
 
-## PARTE 3: EJECUCIÓN (DOS MÁQUINAS)
+## PARTE 3: EJECUCIÓN (DOS DISPOSITIVOS)
 
-### MÁQUINA A — RECEPTOR (con cámara)
+### DISPOSITIVO A — RECEPTOR (con cámara)
 
 #### Paso 3A.1: Abrir terminal en carpeta del proyecto
 
@@ -102,72 +100,7 @@ cd /home/klob/Documents/redes/projects/1/QR-NET
 source venv/bin/activate
 ```
 
-#### Paso 3A.2: Iniciar como receptor
 
-```bash
-python src/receiver.py --host 192.168.1.101 --port 9000
-```
-
-**Salida esperada:**
-```
-======================================================================
-QR-NET FILE TRANSFER — RECEPTOR
-======================================================================
-
-[Receptor] Nodo iniciado en 192.168.1.101:9000
-[Receptor] ID del nodo: a7c3f2d8e1b4a9c6...
-
-[Receptor] Captura de cámara iniciada
-
-[Luz-L1] Cámara abierta, buscando QRs...
-
-[Receptor] Esperando archivos (timeout: 300s)...
-```
-
-✅ **DEJA ESTE TERMINAL ABIERTO** — El receptor está listening
-
-⚠️ **Anota el ID del nodo** (primeros 8+ caracteres)
-
----
-
-### MÁQUINA B — EMISOR
-
-#### Paso 3B.1: Abrir terminal EN OTRA MÁQUINA (o nueva terminal)
-
-```bash
-cd /home/klob/Documents/redes/projects/1/QR-NET
-source venv/bin/activate
-```
-
-#### Paso 3B.2: Iniciar como emisor
-
-```bash
-python src/sender.py test_file.bin a7c3f2d8 192.168.1.100
-```
-
-**Reemplazar:**
-- `test_file.bin` → tu archivo a enviar
-- `a7c3f2d8` → ID del nodo receptor (primeros 8 caracteres del paso 3A.2)
-- `192.168.1.100` → IP de ESTA máquina
-
-**Salida esperada:**
-```
-======================================================================
-QR-NET FILE TRANSFER — EMISOR
-======================================================================
-
-[Emisor] Nodo iniciado en 192.168.1.100:9000
-[Emisor] ID del nodo: x1y2z3w4...
-
-──────────────────────────────────────────────────────────────────────
-Archivo: test_file.bin
-Tamaño: 1048576 bytes
-Destino: a7c3f2d8
-──────────────────────────────────────────────────────────────────────
-
-Fragmentos a enviar: 5
-
-Mostrando fragmentos en pantalla:
 
   [1/5] Mostrando fragmento... ✓
   [2/5] Mostrando fragmento... ✓
@@ -237,10 +170,10 @@ cmp test_file.bin received_test_file.bin && echo "✓ Archivos idénticos"
 
 ```bash
 # Receptor
-./quickstart.sh receive --host 192.168.1.101
+./quickstart.sh receive --camera 0
 
 # Emisor
-./quickstart.sh send test_file.bin a7c3f2d8 192.168.1.100
+./quickstart.sh send test_file.bin
 ```
 
 ### Opción B: Usar ejemplo interactivo (menú)
@@ -249,24 +182,10 @@ cmp test_file.bin received_test_file.bin && echo "✓ Archivos idénticos"
 python example_file_transfer.py
 ```
 
-Luego responde las preguntas interactivas.
-
-### Opción C: Usar Python directo (código)
-
-```python
-from src.layer7_file_transfer import FileTransferApp
-from src.layer2_3_network.node import QRNetNode
-from src.layer7_anonymous.app import AnonymousApp
-
-# Inicializar
-node = QRNetNode("192.168.1.100", 9000)
-node.start()
-app = AnonymousApp(node)
-file_app = FileTransferApp(app)
-
-# Enviar archivo
-file_app.send_file("a7c3f2d8", "test_file.bin")
-```
+Luego responde el menú interactivo:
+- Opción 1: Emisor (enviar archivo)
+- Opción 2: Receptor (recibir archivo con cámara)
+- Opción 3: Salir
 
 ---
 
@@ -282,23 +201,27 @@ v4l2-ctl --list-devices
 python src/receiver.py --camera 1
 ```
 
-### Problema: "Connection refused"
+### Problema: Transferencia lenta o sin reconocimiento
+
+La transferencia usa QR broadcast — no requiere conexión de red. Si hay problemas:
 
 ```bash
-# Puerto está en uso
-lsof -i :9000
+# Verificar que la cámara ve los QRs
+# - Mejorar iluminación de pantalla emisor
+# - Aumentar proximidad entre dispositivos
+# - Usar cámara de mejor calidad
 
-# Usar otro puerto
-python src/receiver.py --port 9001
-python src/sender.py archivo.pdf id --port 9000
+# Reintentar
+python src/receiver.py --camera 0
+python src/sender.py archivo.pdf
 ```
 
 ### Problema: "Hash mismatch"
 
 ```bash
 # Archivo corrupto en tránsito
-# Reintentar la transferencia
-# Verificar red e iluminación
+# Causas: pérdida de fragmentos, mala iluminación, captura incorrecta
+# Solución: reintentar la transferencia
 ```
 
 ### Problema: "ModuleNotFoundError"
@@ -318,21 +241,21 @@ source venv/bin/activate
 ### Escenario: Transferir documento.pdf entre dos PCs
 
 ```bash
-# ========== MÁQUINA 1 (Receptora, IP: 192.168.1.101) ==========
+# ========== MÁQUINA 1 (Receptora) ==========
 $ cd /home/klob/Documents/redes/projects/1/QR-NET
 $ source venv/bin/activate
 
-(venv) $ python src/receiver.py --host 192.168.1.101 --port 9000
+(venv) $ python src/receiver.py --camera 0
 
-# [Receptor] ID del nodo: a7c3f2d8e1b4a9c6...
+# [Receptor] Captura de cámara iniciada
 # [Receptor] Esperando archivos...
 # (Deja esto abierto)
 
-# ========== MÁQUINA 2 (Emisora, IP: 192.168.1.100) ==========
+# ========== MÁQUINA 2 (Emisora) ==========
 $ cd /home/klob/Documents/redes/projects/1/QR-NET
 $ source venv/bin/activate
 
-(venv) $ python src/sender.py documento.pdf a7c3f2d8 192.168.1.100
+(venv) $ python src/sender.py documento.pdf
 
 # [Emisor] Mostrando fragmentos...
 # [1/15] ✓
